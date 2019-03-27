@@ -109,11 +109,9 @@ public:
     bool isGroup(const group_id grpId);
     bool isSelected(const group_id grpId, const t_id ctlId);
 
-    static std::shared_ptr<GroupControllManager> getInstance() {
+    static GroupControllManager& getInstance() {
 
-        static auto inst = std::shared_ptr<GroupControllManager>
-            (&boost::serialization::singleton<GroupControllManager>::get_mutable_instance());
-        return inst;
+        return boost::serialization::singleton<GroupControllManager>::get_mutable_instance();
     }
 
 private:

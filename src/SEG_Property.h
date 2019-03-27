@@ -21,7 +21,8 @@ enum class ControllKind : t_type {
     EditLabel,
     Button,
     RadioButton,
-    Border
+    Border,
+    ComboBox
 };
 
 enum class TDisplayMode : t_type {

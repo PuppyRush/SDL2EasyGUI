@@ -36,64 +36,27 @@ namespace sdleasygui {
 class DisplayInterface : public GraphicInterface{
 public:
 
-////////////below sources are from std::thread.
-    template<std::size_t __i, typename _Tp>
-    using __tuple_element_t = typename std::tuple_element<__i, _Tp>::type;
-
-    template<typename _Tuple>
-    struct _Invoker {
-        _Tuple _M_t;
-
-        template<size_t _Index>
-        static __tuple_element_t<_Index, _Tuple> &&
-        _S_declval();
-
-        template<size_t... _Ind>
-        auto
-        _M_invoke(std::_Index_tuple<_Ind...>)
-        noexcept(noexcept(std::__invoke(_S_declval<_Ind>()...)))
-        -> decltype(std::__invoke(_S_declval<_Ind>()...))
-        { return std::__invoke(std::get<_Ind>(std::move(_M_t))...); }
-
-        using _Indices= typename std::_Build_index_tuple<std::tuple_size<_Tuple>::value>::__type;
-
-        auto
-        operator()()
-        noexcept(noexcept(std::declval<_Invoker &>()._M_invoke(_Indices())))
-        -> decltype(std::declval<_Invoker &>()._M_invoke(_Indices()))
-        { return _M_invoke(_Indices()); }
-    };
-
-    template<typename... _Tp>
-    using __decayed_tuple = std::tuple<typename std::decay<_Tp>::type...>;
-
-    template<typename _Callable, typename... _Args>
-    _Invoker<__decayed_tuple<_Callable, _Args...>>
-    _make_invoker(_Callable &&__callable, _Args &&... __args)
-    {
-        return {__decayed_tuple<_Callable, _Args...>{
-            std::forward<_Callable>(__callable), std::forward<_Args>(__args)...
-        }};
-    }
-////////////////////////
-
     using controll_ptr = typename Controll::controll_ptr;
+    using unique_type = typename GraphicInterface::unique_type ;
+    using display_ptr = std::shared_ptr<DisplayInterface>;
 
     virtual ~DisplayInterface();
 
     void addControll(const controll_ptr ctl);
     bool clickedMenuEvent(const TPoint &point);
 
-    std::underlying_type_t<resource> modal();
-    void modaless();
+    std::underlying_type_t<resource> modal(std::shared_ptr<DisplayInterface> display);
+    void modaless(std::shared_ptr<DisplayInterface> display);
+    std::underlying_type_t<resource> waitModaless();
+
     void show() { getWindow()->show(); }
     void hidden() { getWindow()->hidden(); }
     t_res initialize();
 
     virtual void onDraw();
     virtual void refresh() override;
-    virtual void postCreate() = 0;
-    virtual void postDestroy() = 0;
+    virtual void postCreate(display_ptr) = 0;
+    virtual void postDestroy(const unique_type unique) = 0;
 
     inline void setBackgroundImgPath(const std::string &path) { m_backgroundImgPath = path; }
     inline void setRun(const bool run) { m_run = run; }
@@ -101,9 +64,9 @@ public:
 
     inline const t_display getDisplay() const noexcept { return m_display; }
     inline const TLocalMode getMode() const noexcept { return m_mode; }
-    inline const bool getRun() const noexcept { return m_run; }
+    inline const bool isRun() const noexcept { return m_run; }
     inline const bool getSetDraw() const noexcept { return m_stopDraw; }
-    inline const t_id getWindowID() const noexcept { return getWindow()->getWindowID(); }
+    inline const unique_type getWindowID() const noexcept { return getWindow()->getWindowID(); }
     inline Controll *getCurrentControll() const noexcept { return m_currentCtl; };
 
     template<class T>
@@ -126,14 +89,6 @@ protected:
         return getWindow()->getSDLRenderer();
     }
 
-    template<typename _Callable, typename... _Args>
-    void addLButtonClickEvent(const t_res id, _Callable &&__f, _Args &&... __args)
-    {
-        auto fn = _make_invoker(std::forward<_Callable>(__f),
-                                std::forward<_Args>(__args)...);
-        _noParamEvent(id,fn);
-    }
-
     void _noParamEvent(const t_res id, const std::function<void(void)> callback_fn)
     {
         m_callback_no_param.insert(make_pair(id,callback_fn));
@@ -149,7 +104,7 @@ protected:
         m_callback_two_param.insert(make_pair(id,callback_fn));
     }
 
-    virtual void registerEvent() {}
+    virtual void registerEvent() = 0;
     virtual void onInitialize();
     virtual void onCreate();
     virtual void onClose();
@@ -208,7 +163,9 @@ private:
     bool m_stopDraw = false;
     std::thread m_thread;
     std::atomic_bool m_run = true;
-    resource m_modalresult = NONE;
+    resource m_resultResrouce = NONE;
+    std::promise<resource> m_modalessPromise;
+    std::future<resource> m_modalessFuture;
 };
 
 

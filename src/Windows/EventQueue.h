@@ -16,7 +16,7 @@
 namespace sdleasygui {
 
 struct event_mover {
-    const event_type event;
+    const event_type event = nullptr;
     explicit event_mover(const event_type event)
         : event(event) {};
 
@@ -28,8 +28,8 @@ struct event_mover {
             if(event->user.data2 != nullptr)
                 delete event->user.data2;*/
         }
-        if (event)
-            delete event;
+        //if (event)
+        //    delete event;
     }
 };
 

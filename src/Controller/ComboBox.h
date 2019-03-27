@@ -12,6 +12,7 @@ namespace sdleasygui {
 class ComboBox : public Border{
 
 public:
+    ComboBox(BorderBuilder& bld);
     virtual ~ComboBox() = default;
 
 };

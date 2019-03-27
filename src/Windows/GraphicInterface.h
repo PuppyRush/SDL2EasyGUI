@@ -20,12 +20,16 @@ class GraphicInterface : public EventListener, public EventDelivery {
 
 public:
     using window_type = SEG_Window*;
+    using unique_type = SEG_Window::unique_type ;
 
     virtual ~GraphicInterface();
     virtual void onDraw() = 0;
 
-    inline void setWindowWidth(const t_size width){ m_window->setWidth(width);}
-    inline void setWindowHeight(const t_size height){ m_window->setHeight(height);}
+    inline void setWindowTitle(const std::string& str) { m_window->setTitle(str);}
+    inline void setWindowWidth(const t_size width) noexcept { m_window->setWidth(width);}
+    inline void setWindowHeight(const t_size height) noexcept { m_window->setHeight(height);}
+    inline const t_size getWindowWidth() const noexcept { return m_window->getWidth();}
+    inline const t_size getWindowHeight() const noexcept { return m_window->getHeight();}
 
     void setWindow(window_type window) { m_window = window; }
     window_type getWindow() const noexcept {  return m_window;  }
@@ -33,17 +37,16 @@ public:
 protected:
 
     GraphicInterface()
-        :m_window(new SEG_Window)
+        :m_window()
     {}
+
+    window_type m_window = nullptr;
 
     virtual void refresh() = 0;
 
-
 private:
-
     virtual bool validId(const sdleasygui::t_id id) = 0;
 
-    window_type m_window = nullptr;
 };
 
 class textDrawer

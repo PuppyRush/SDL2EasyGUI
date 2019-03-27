@@ -32,7 +32,7 @@ extern void SDLEasyGUI_Init() {
     }
     SDL_RegisterEvents(SEG_DRAW_DISPLAY);
 
-    DisplayController::getInstance()->run();
+    DisplayController::getInstance().run();
 }
 
 }

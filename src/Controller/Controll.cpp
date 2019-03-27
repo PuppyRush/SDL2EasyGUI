@@ -20,9 +20,9 @@ void Controll::initialize()
 
     if(m_basic->group != GroupControllManager::NONE)
     {
-        GroupControllManager::getInstance()->add(m_basic->group, m_basic->resourceId);
+        GroupControllManager::getInstance().add(m_basic->group, m_basic->resourceId);
         if(m_basic->multiselected)
-            GroupControllManager::getInstance()->setMultiselect(m_basic->group);
+            GroupControllManager::getInstance().setMultiselect(m_basic->group);
     }
 }
 
@@ -53,7 +53,7 @@ void Controll::setSelected(bool selected)
 {
     m_basic->selected = selected;
     if(selected)
-        GroupControllManager::getInstance()->select(m_basic->group, m_basic->resourceId);
+        GroupControllManager::getInstance().select(m_basic->group, m_basic->resourceId);
 }
 
 const bool Controll::isHit(const TPoint& point)

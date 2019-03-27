@@ -9,10 +9,12 @@
   #pragma once
 #endif
 
+#include <memory>
 #include <unordered_map>
 #include <queue>
 #include <thread>
 #include <condition_variable>
+
 #include <boost/serialization/singleton.hpp>
 
 #include "../SEG_Type.h"
@@ -35,30 +37,32 @@ struct KeyEqual {
     }
 };
 
-class DisplayController : public boost::serialization::singleton<DisplayController>
+class DisplayController : private boost::serialization::singleton<DisplayController>
 {
 
 public:
-    using display_ptr = DisplayInterface *;
+    using display_type = DisplayInterface;
+    using display_ptr = std::shared_ptr<display_type> ;
     using modal_ary = std::deque<display_ptr>;
     using modaless_ary =  std::vector<display_ptr>;
     using modaless_ary_iterator = modaless_ary::const_iterator;
 
     friend class boost::serialization::singleton<DisplayController>;
 
+    virtual ~DisplayController();
+
     void run();
+    void finish();
 
     void modal_open(display_ptr);
     void modal_close();
-    void modaless(display_ptr);
+    void modaless_open(display_ptr);
+    void modaless_close(sdleasygui::t_id winid);
     void close(const t_id id);
     void refreshModal();
 
-    static std::shared_ptr<DisplayController> getInstance() {
-
-        static auto inst = std::shared_ptr<DisplayController>
-            (&boost::serialization::singleton<DisplayController>::get_mutable_instance());
-        return inst;
+    static DisplayController& getInstance() {
+        return boost::serialization::singleton<DisplayController>::get_mutable_instance();
     }
 
     inline bool isRunningDisplay(){return !(m_modalessAry.empty() && m_modalStack.empty());}
@@ -88,17 +92,23 @@ private:
 struct modal_opener {
 
     DisplayController::display_ptr display;
+    bool modal;
 
-    explicit modal_opener(DisplayController::display_ptr display)
-        :display(display)
+    explicit modal_opener(DisplayController::display_ptr display, bool m)
+        :display(display), modal(m)
     {
-        DisplayController::getInstance()->modal_open(display);
-        display->postCreate();
+        if(modal)
+            DisplayController::getInstance().modal_open(display);
+        else
+            DisplayController::getInstance().modaless_open(display);
+
+        display->postCreate(display);
     }
 
     ~modal_opener() {
-        DisplayController::getInstance()->modal_close();
-        display->postDestroy();
+        if(modal) {
+            DisplayController::getInstance().modal_close();
+        }
     }
 
 };

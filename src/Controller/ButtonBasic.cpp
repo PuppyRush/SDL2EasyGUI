@@ -76,7 +76,7 @@ void ButtonBasic::_drawCarot()
 
     if(isSelected() && isCarot())
     {
-        if( GroupControllManager::getInstance()->isSelected(getGroup(), getResourceId()))
+        if( GroupControllManager::getInstance().isSelected(getGroup(), getResourceId()))
         {
             SDL_Rect rect{getPoint().x-5, getPoint().y-5, getWidth()+10, getHeight()+10};
 

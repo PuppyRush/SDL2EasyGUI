@@ -24,11 +24,19 @@ DisplayController::DisplayController()
 {
 }
 
+DisplayController::~DisplayController()
+{
+    finish();
+    /*condition_variable cv;
+    std::mutex m;
+    std::unique_lock<std::mutex> lock(m);
+    cv.wait(lock, [=](){return !m_run.load();});*/
+    m_thread.join();
+
+}
 
 void DisplayController::modal_open(display_ptr display)
 {
-    display->getWindow()->initialize();
-
     m_modalStack.emplace_back(display);
     m_modalAryCV.notify_one();
 
@@ -36,35 +44,35 @@ void DisplayController::modal_open(display_ptr display)
 
     if(!m_modalStack.empty())
     {
-        /*auto parent = m_modalStack.front();
-        SDL_SetWindowModalFor(display->getWindow()->getSDLWindow().get(),
-                              parent->getWindow()->getSDLWindow().get());*/
+        auto parent = m_modalStack.front();
+        SDL_SetWindowModalFor(display->getWindow()->getSDLWindow(),
+                              parent->getWindow()->getSDLWindow());
     }
 
     display->refresh();
-
-
 
 }
 
 void DisplayController::modal_close()
 {
-    auto display = m_modalStack.back();
     m_modalStack.pop_back();
 }
 
-void DisplayController::modaless(display_ptr display)
+void DisplayController::modaless_open(display_ptr display)
 {
-    if( auto it = std::find_if(begin(m_modalessAry), end(m_modalessAry), [display](const display_ptr ptr)
-        {
-          return display->getWindowID() == ptr->getWindowID();
-        }); it== m_modalessAry.end())
-    {
-        m_modalessAry.emplace_back(display);
-    }
+    m_modalessAry.emplace_back(display);
+    m_modalAryCV.notify_one();
 
     display->initialize();
     display->refresh();
+}
+
+void DisplayController::modaless_close(sdleasygui::t_id winid)
+{
+    auto it = std::remove_if(begin(m_modalessAry), end(m_modalessAry), [winid](const auto ptr)
+    {
+      return winid == ptr->getWindowID();
+    });
 }
 
 void DisplayController::close(const t_id id)
@@ -76,23 +84,21 @@ void DisplayController::close(const t_id id)
     }
     else
     {
-        std::remove_if(begin(m_modalessAry), end(m_modalessAry), [id](display_ptr display) {
+        std::remove_if(begin(m_modalessAry), end(m_modalessAry), [id](auto display) {
           return display->getWindowID() == id;
         });
     }
-
 }
 
 void DisplayController::run()
 {
-    //_pumpEvent();
     m_thread = std::thread(&DisplayController::pumpEvent, this);
 }
 
 void DisplayController::pumpEvent()
 {
     std::unique_lock<std::mutex> lock(m_modalAryMutex);
-    m_modalAryCV.wait(lock, [=](){return !m_modalStack.empty() ;});
+    m_modalAryCV.wait(lock, [=](){return !m_modalStack.empty() || !m_modalessAry.empty();});
 
     while(m_run)
     {
@@ -114,14 +120,15 @@ void DisplayController::pumpEvent()
             //broadcasting m_userEvent if not found something targeted id (display, controller)
             SDL_Event* e = new SDL_Event{event};
 
-            auto topDisplay = m_modalStack.back();
-            topDisplay->receiveEvent(NULL_WINDOW_ID, e);
+            if(!m_modalStack.empty())
+            {
+                m_modalStack.back()->receiveEvent(NULL_WINDOW_ID, e);
+            }
 
             for(const auto modaless : m_modalessAry) {
                 modaless->receiveEvent(NULL_WINDOW_ID, e);
             }
         }
-
     }
 }
 
@@ -186,7 +193,7 @@ t_id DisplayController::getActivatedWindowID(const SDL_Event* event)
 template <class T>
 DisplayController::display_ptr DisplayController::_find(const T& ary, const t_id id)
 {
-    auto it = std::find_if(begin(ary), end(ary), [id](const display_ptr ptr)
+    auto it = std::find_if(begin(ary), end(ary), [id](const auto ptr)
     {
       return id == ptr->getWindowID();
     });
@@ -198,8 +205,46 @@ void DisplayController::_release()
 {
 }
 
+void DisplayController::finish()
+{
+    for(const auto display : m_modalStack)
+    {
+        EventPusher event{display->getWindowID(), WINDOW_CLOSE };
+        event.pushEvent();
+    }
+
+    for(const auto display : m_modalessAry)
+    {
+        EventPusher event{display->getWindowID(), WINDOW_CLOSE };
+        event.pushEvent();
+    }
+
+   /* while(!m_modalStack.empty())
+    {
+        if(!(*m_modalStack.begin())->isRun())
+        {
+            delete m_modalStack.front();
+            m_modalStack.pop_front();
+        }
+    }
+
+    while(!m_modalessAry.empty())
+    {
+        if(!(*m_modalessAry.begin())->isRun())
+        {
+            auto dis = *m_modalessAry.begin();
+            m_modalessAry.erase(m_modalessAry.begin());
+            delete dis;
+        }
+    }*/
+
+    m_run.exchange(false);
+}
+
 void DisplayController::refreshModal()
 {
     for(const auto display : m_modalStack)
+        display->onDraw();
+    for(const auto display : m_modalessAry)
         display->onDraw();
 }
