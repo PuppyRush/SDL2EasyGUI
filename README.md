@@ -1,11 +1,11 @@
 ## SDL2EasyGUI
 
-**SDL2EasyGui**프로젝트는 SDL2 랩핑한 GUI라이브러리입니다.
+**SDL2EasyGUI**는 SDL2을 랩핑한 GUI라이브러리입니다.
 순수 moden C++로 작성되었으며 크로스컴파일이 가능하도록 개발하였습니다.
 
 ## License
 
-SDL2EasyGui is licensed under the zlib License, Version 2.0. See LICENSE for full license text.
+SDL2EasyGUI is licensed under the zlib License, Version 2.0. See LICENSE for full license text.
 
   version 1.2.11, January 15th, 2017
 
