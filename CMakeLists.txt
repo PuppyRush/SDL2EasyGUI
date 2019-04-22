@@ -39,6 +39,9 @@ include_directories(src/Windows)
 
 include_directories(
         include
+        src
+        ../
+        lib
         SYSTEM ${Boost_INCLUDE_DIR}
         ${SDL2_INCLUDE_DIR}
         ${SDL2_IMAGE_INCLUDE_DIR}
