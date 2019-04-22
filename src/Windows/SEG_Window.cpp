@@ -4,7 +4,7 @@
 
 #include <iostream>
 
-#include "SEG_Window.h"
+#include "SDL2EasyGUI/include/SEG_Window.h"
 
 using namespace sdleasygui;
 
@@ -19,8 +19,15 @@ SEG_Window::SEG_Window(const t_size width,const t_size height)
 
 SEG_Window::~SEG_Window()
 {
-    //SDL_DestroyRenderer(m_renderer);
-    //SDL_DestroyWindow(m_window);
+    /*if(m_renderer) {
+        SDL_DestroyRenderer(m_renderer);
+        m_renderer = nullptr;
+    }
+
+    if(m_window) {
+        SDL_DestroyWindow(m_window);
+        m_window = nullptr;
+    }*/
     /*if(m_window) {
         delete m_window;
         m_window = nullptr;

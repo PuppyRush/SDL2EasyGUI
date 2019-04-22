@@ -5,15 +5,15 @@
 #include <exception>
 #include <algorithm>
 
-#include "DisplayController.h"
-#include "DisplayInterface.h"
-#include "../SEG_Resource.h"
+#include "SDL2EasyGUI/include/DisplayController.h"
+#include "include/DisplayInterface.h"
+#include "SDL2EasyGUI/include/SEG_Resource.h"
 
 using namespace std;
 using namespace sdleasygui;
 
-DisplayInterface::DisplayInterface()
-    :m_currentCtl(nullptr)
+DisplayInterface::DisplayInterface(const t_id displayId)
+    :m_displayId(displayId)
 {
     m_window = new SEG_Window;
 }
@@ -27,11 +27,16 @@ DisplayInterface::~DisplayInterface()
 void DisplayInterface::onInitialize()
 {
     registerEvent();
+
+
 }
 
 t_res DisplayInterface::initialize()
 {
     getWindow()->initialize();
+
+    m_currentCtl = nullptr;
+    setRun(true);
 
     onCreate();
     onInitialize();
@@ -39,47 +44,55 @@ t_res DisplayInterface::initialize()
 
 }
 
-std::underlying_type_t<resource> DisplayInterface::modal(std::shared_ptr<DisplayInterface> display)
+std::underlying_type_t<resource> DisplayInterface::alert()
 {
-    modal_opener opener{display, true};
+    DisplayController::getInstance().alert(this);
 
-    promise<resource> pm;
-    auto f = pm.get_future();
-
-    m_thread = thread(&DisplayInterface::_run, this, std::move(pm) );
+    m_thread = thread(&DisplayInterface::_run, this);
     m_thread.join();
 
-    return toUType(f.get());
+    DisplayController::getInstance().alert_close();
+
+    return m_resultResrouce;
+
+}
+
+std::underlying_type_t<resource> DisplayInterface::modal(std::shared_ptr<DisplayInterface> display)
+{
+    modal_opener opener{display};
+
+    m_thread = thread(&DisplayInterface::_run, this);
+    m_thread.join();
+
+    return m_resultResrouce;
 }
 
 void DisplayInterface::modaless(std::shared_ptr<DisplayInterface> display)
 {
-    modal_opener opener{display, false};
-
-    m_modalessFuture = m_modalessPromise.get_future();
-    m_thread = thread(&DisplayInterface::_run, this, std::move(m_modalessPromise));
+    DisplayController::getInstance().modaless_open(display);
+    m_thread = thread(&DisplayInterface::_run, this);
 }
 
 std::underlying_type_t<resource> DisplayInterface::waitModaless()
 {
     m_thread.join();
-    return toUType(m_modalessFuture.get());
+    return m_resultResrouce;
 }
 
-void DisplayInterface::_run(std::promise<resource> &&pm){
+void DisplayInterface::_run(){
 
     while(m_run)
     {
-        const event_mover e = popEvent();
-        onEvent(e.event);
+        auto event = m_eventDelivery.popEvent();
+        onEvent(event);
 
         if( m_currentCtl )
         {
-            m_currentCtl->onEvent(e.event);
+            m_currentCtl->onEvent(event);
         }
+        delete event;
     }
 
-    pm.set_value(m_resultResrouce);
 }
 
 void DisplayInterface::onUserEvent(const SDL_UserEvent* event) {
@@ -87,20 +100,26 @@ void DisplayInterface::onUserEvent(const SDL_UserEvent* event) {
         case SEG_CLICKED_CONTROLLER:
         {
             t_res id = *static_cast<t_res*>(event->data1);
-            if(m_callback_no_param.count(id)>0)
-                m_callback_no_param.at(id)();
+            if(m_callback_one_param.count(id)>0) {
+                SEG_Click* click = static_cast<SEG_Click*>(event->data2);
+                m_callback_one_param.at(id)(click);
+            }
             break;
         }
         case SEG_ENTER_CONTROLLER:
         {
             t_res id = *static_cast<t_res*>(event->data1);
-            SDL_KeyboardEvent* keyevent = static_cast<SDL_KeyboardEvent*>(event->data2);
+
             if(m_callback_one_param.count(id)>0)
+            {
+                SDL_KeyboardEvent* keyevent = static_cast<SDL_KeyboardEvent*>(event->data2);
                 m_callback_one_param.at(id)(keyevent);
+            }
             break;
         }
         case SEG_DRAW_DISPLAY:
             //dont call _refresh() in this case.
+            onDrawBackground();
             onDraw();
             break;
         case SEG_DRAW_CONTROLLER:
@@ -115,16 +134,33 @@ void DisplayInterface::onUserEvent(const SDL_UserEvent* event) {
     }
 }
 
+void DisplayInterface::onKeyboardEvent(const SDL_KeyboardEvent *key)
+{
+    switch(key->keysym.sym)
+    {
+        case SDLK_RETURN:
+            if( auto res = getCurrentController() ;
+                    res.first && res.second->isFoucs())
+            {
+                res.second->clickController();
+            }
+            break;
+        case SDLK_ESCAPE:
+            if( auto res = getCurrentController() ;
+                res.first && res.second->isFoucs())
+            {
+                res.second->setFoucs(false);
+            }
+            break;
+    }
+}
+
+
 void DisplayInterface::onMouseButtonEvent (const SDL_MouseButtonEvent* button)
 {
-    clickedMenuEvent(TPoint{button->x, button->y});
+    menuHitTest(TPoint{button->x, button->y});
     refresh();
 }
-
-void DisplayInterface::onMouseMotionEvent(const SDL_MouseMotionEvent *motion)
-{
-}
-
 
 void DisplayInterface::onWindowEvent (const SDL_WindowEvent& window)
 {
@@ -143,7 +179,7 @@ void DisplayInterface::onWindowEvent (const SDL_WindowEvent& window)
             onDestroy();
             break;
     }
-    DisplayController::getInstance().refreshModal();
+    //DisplayController::getInstance().refreshModal();
 }
 
 void DisplayInterface::onCreate()
@@ -167,8 +203,16 @@ void DisplayInterface::onClose()
 
     setRun(false);
     hidden();
-    onDestroy();
 
+    onDestroy();
+}
+
+void DisplayInterface::onButtonClick(const void *event)
+{
+    const SEG_Click* click = static_cast<const SEG_Click*>(event);
+    m_resultResrouce = click->resourceId;
+
+    onClose();
 }
 
 void DisplayInterface::onOK()
@@ -190,7 +234,29 @@ void DisplayInterface::onCancel()
 
 void DisplayInterface::onDestroy()
 {
+    m_menus.clear();
+}
 
+void DisplayInterface::onDrawBackground()
+{
+    if(!m_backgroundImgPath.empty())
+    {
+        auto renderer = getRenderer();
+
+        t_size w, h; // texture width & height
+        auto img = IMG_LoadTexture(renderer, m_backgroundImgPath.c_str());
+        SDL_QueryTexture(img, NULL, NULL, &w, &h);
+
+        SDL_Rect texr;
+        texr.x = 0;
+        texr.y = 0;
+        texr.w = w;
+        texr.h = h;
+        SDL_RenderCopy(renderer, img, NULL, &texr);
+    }
+
+    SDL_Rect rect = SDL_Rect{ 0,0, getWindowWidth(), getWindowHeight()};
+    GraphicInterface::_drawBackground(rect);
 }
 
 void DisplayInterface::onDraw()
@@ -207,13 +273,24 @@ void DisplayInterface::_onDrawMenus()
     }
 }
 
-void DisplayInterface::addControll(const controll_ptr ctl)
+void DisplayInterface::addControll(const controller_ptr newCtl)
 {
-    ctl->initialize();
-    m_menus.emplace_back(ctl);
+    newCtl->initialize();
+
+    auto it = std::find_if(begin(m_menus), end(m_menus), [newCtl](controller_ptr exCtl){
+        return newCtl->getResourceId() == exCtl->getResourceId();
+    });
+
+    if(it != m_menus.end())
+    {
+        assert(0);
+        return;
+    }
+
+    m_menus.emplace_back(newCtl);
 }
 
-bool DisplayInterface::clickedMenuEvent(const TPoint& point)
+bool DisplayInterface::menuHitTest(const TPoint &point)
 {
     for(const auto& menu : m_menus)
     {

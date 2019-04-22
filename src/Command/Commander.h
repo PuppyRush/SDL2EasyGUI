@@ -5,7 +5,7 @@
 #ifndef TETRIS_FIGURE_CLASS_COMMANDER_H
 #define TETRIS_FIGURE_CLASS_COMMANDER_H
 
-#include "../SEG_Type.h"
+#include "SDL2EasyGUI/include/SEG_Type.h"
 
 namespace sdleasygui {
 
