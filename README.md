@@ -1,4 +1,4 @@
-## SDL2EasyGui
+## SDL2EasyGUI
 
 **SDL2EasyGui**프로젝트는 SDL2 랩핑한 GUI라이브러리입니다.
 순수 moden C++로 작성되었으며 크로스컴파일이 가능하도록 개발하였습니다.
