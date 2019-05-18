@@ -46,6 +46,7 @@ find_path(SDL2_TTF_INCLUDE_DIR SDL_ttf.h
         HINTS
         ENV SDL2TTFDIR
         ENV SDL2DIR
+		$ENV{SDL2_TTF_PATH}
         PATH_SUFFIXES SDL2
         # path suffixes to search inside ENV{SDLDIR}
         include/SDL2 include
@@ -63,6 +64,7 @@ find_library(SDL2_TTF_LIBRARY
         HINTS
         ENV SDL2TTFDIR
         ENV SDL2DIR
+		$ENV{SDL2_TTF_PATH}
         PATH_SUFFIXES lib ${VC_LIB_PATH_SUFFIX}
         PATHS ${SDL2_TTF_PATH}
         )

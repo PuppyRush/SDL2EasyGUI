@@ -31,7 +31,7 @@ void DisplayInterface::onInitialize()
 
 }
 
-t_res DisplayInterface::initialize()
+void DisplayInterface::initialize()
 {
     getWindow()->initialize();
 

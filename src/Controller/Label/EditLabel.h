@@ -30,7 +30,7 @@ public:
     virtual ~EditLabel() = default;
     explicit EditLabel(EditLabelBuilder &bld);
 
-    inline void clearString() _GLIBCXX_NOEXCEPT { m_labelString.clear();}
+    inline void clearString() noexcept { m_labelString.clear();}
     inline const std::string& getString() const noexcept {return m_labelString;}
 
 protected:

@@ -3,21 +3,37 @@ project(SDL2EasyGUI)
 
 SET(CMAKE_EXE_LINKER_FLAGS "-static")
 
+set(SDL2_INCLUDE_DIRS "$ENV{SDL2DIR}")
+
+#message( "SDL2DIR : "  $ENV{SDL2DIR})
+#message( "SDL2_INCLUDE_DIRS : "  ${SDL2_INCLUDE_DIRS})
+#message( "SDL2_IMAGE_PATH : "  $ENV{SDL2_IMAGE_PATH})
+#message("--------------------------------------")
+
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake;${CMAKE_MODULE_PATH}")
 
-#set(SDL2_PATH "${PROJECT_SOURCE_DIR}/S9DL")
-
-set(Boost_INCLUDE_DIR /usr/include)
-set(BOOST_SOURCE /usr/include)
-set(Boost_LIBRARIES /usr/lib/x86_64-linux-gnu/)
-set(sdl2gfx /usr/local/lib)
+if(WIN32)
+	set(Boost_INCLUDE_DIR $ENV{Boost_INCLUDE_DIR})
+	set(Boost_LIBRARIES $ENV{Boost_LIBRARIES})
+	set(BOOST_ROOT $ENV{BOOST_ROOT})
+	set(BOOST_LIBRARYDIR $ENV{Boost_LIBRARIES} )
+else()
+	set(Boost_INCLUDE_DIR /usr/include)
+	set(Boost_LIBRARIES /usr/lib/x86_64-linux-gnu/)
+	set(BOOST_SOURCE /usr/include)
+	set(sdl2gfx /usr/local/lib)
+endif()
 
 find_package(SDL2 REQUIRED)
 find_package(SDL2_image REQUIRED)
 find_package(SDL2_ttf REQUIRED)
 find_package(Boost 1.65.1 REQUIRED COMPONENTS system filesystem serialization)
-find_package(PkgConfig REQUIRED)
+
+if(!WIN32)
+	find_package(PkgConfig REQUIRED)
+endif()
 
 set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
 set(THREADS_PREFER_PTHREAD_FLAG TRUE)
@@ -30,6 +46,7 @@ endif ()
 
 
 include_directories(.)
+include_directories(lib)
 include_directories(src)
 include_directories(src/Command)
 include_directories(src/Controller)
@@ -41,7 +58,7 @@ include_directories(
         include
         src
         ../
-        lib
+        lib/
         SYSTEM ${Boost_INCLUDE_DIR}
         ${SDL2_INCLUDE_DIR}
         ${SDL2_IMAGE_INCLUDE_DIR}

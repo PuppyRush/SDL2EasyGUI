@@ -61,10 +61,8 @@ public:
     }
 
     bool operator==(const TColor &color) {
-        return
-            this->r == color.r
-        and this->g == color.g
-        and this->b == color.b;
+		return
+			(this->r == color.r) && (this->g == color.g) && (this->b == color.b);
     }
 
     const bool compare(const TColor &rhs) const {

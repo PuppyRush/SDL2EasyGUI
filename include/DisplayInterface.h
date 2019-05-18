@@ -55,7 +55,7 @@ public:
     void drawBackGroundImage();
     void show() { getWindow()->show(); }
     void hidden() { getWindow()->hidden(); }
-    t_res initialize();
+    void initialize();
 
 
     virtual void refresh() override;

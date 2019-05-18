@@ -44,12 +44,14 @@
 
 find_path(SDL2_IMAGE_INCLUDE_DIR SDL_image.h
         HINTS
-        ENV SDL2IMAGEDIR
+		$ENV{SDL2_IMAGE_PATH}
+        ENV SDL2_IMAGE_PATH
         ENV SDL2DIR
         PATH_SUFFIXES SDL2
         # path suffixes to search inside ENV{SDLDIR}
         include/SDL2 include
         PATHS ${SDL2_IMAGE_PATH}
+		
         )
 
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
@@ -61,10 +63,11 @@ endif()
 find_library(SDL2_IMAGE_LIBRARY
         NAMES SDL2_image
         HINTS
-        ENV SDL2IMAGEDIR
+        ENV SDL2_IMAGE_PATH
         ENV SDL2DIR
         PATH_SUFFIXES lib ${VC_LIB_PATH_SUFFIX}
         PATHS ${SDL2_IMAGE_PATH}
+		$ENV{SDL2_IMAGE_PATH}
         )
 
 if(SDL2_IMAGE_INCLUDE_DIR AND EXISTS "${SDL2_IMAGE_INCLUDE_DIR}/SDL_image.h")
@@ -83,8 +86,15 @@ if(SDL2_IMAGE_INCLUDE_DIR AND EXISTS "${SDL2_IMAGE_INCLUDE_DIR}/SDL_image.h")
     unset(SDL2_IMAGE_VERSION_PATCH)
 endif()
 
+message("--------------------------------------")
+message( "SDL2_IMAGE_LIBRARY : "  ${SDL2_IMAGE_LIBRARY})
+message( "SDL2_IMAGE_INCLUDE_DIR : "  ${SDL2_IMAGE_INCLUDE_DIR})
+message("--------------------------------------")
+
 set(SDL2_IMAGE_LIBRARIES ${SDL2_IMAGE_LIBRARY})
 set(SDL2_IMAGE_INCLUDE_DIRS ${SDL2_IMAGE_INCLUDE_DIR})
+
+
 
 include(FindPackageHandleStandardArgs)
 
